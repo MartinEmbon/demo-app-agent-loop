@@ -1,0 +1,228 @@
+/* Minimal, clean styling. Goal: looks like a real product demo, not a school project. */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  color: #111;
+  background: #fafafa;
+  line-height: 1.5;
+}
+
+/* ---- Header ---- */
+header {
+  background: white;
+  border-bottom: 1px solid #eaeaea;
+  padding: 24px 40px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 880px;
+  margin: 0 auto;
+}
+.logo {
+  width: 40px; height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 20px;
+}
+header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+.subtitle { margin: 2px 0 0; font-size: 13px; color: #888; }
+
+/* ---- Tabs ---- */
+.tabs {
+  max-width: 880px;
+  margin: 28px auto 0;
+  padding: 0 40px;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #eaeaea;
+}
+.tab {
+  background: none;
+  border: none;
+  padding: 12px 18px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: #111; }
+.tab.active {
+  color: #111;
+  border-bottom-color: #111;
+  font-weight: 500;
+}
+
+/* ---- Panels ---- */
+.panel {
+  display: none;
+  max-width: 880px;
+  margin: 32px auto;
+  padding: 0 40px 80px;
+}
+.panel.active { display: block; }
+.hint {
+  background: #f5f5f5;
+  border-left: 3px solid #6366f1;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #555;
+  border-radius: 4px;
+  margin-bottom: 24px;
+}
+
+/* ---- Chat tab ---- */
+.examples {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.example {
+  background: white;
+  border: 1px solid #e5e5e5;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #444;
+  transition: border-color 0.15s, color 0.15s;
+}
+.example:hover { border-color: #111; color: #111; }
+.example:disabled { opacity: 0.5; cursor: wait; }
+
+.composer {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.composer input {
+  flex: 1;
+  padding: 12px 14px;
+  font-size: 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  outline: none;
+  font-family: inherit;
+}
+.composer input:focus { border-color: #6366f1; }
+.composer button {
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 500;
+  background: #111;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.composer button:hover { opacity: 0.9; }
+.composer button:disabled { opacity: 0.5; cursor: wait; }
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.history-item {
+  background: white;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+.history-question {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+}
+.history-answer {
+  font-size: 14px;
+  color: #111;
+  white-space: pre-wrap;
+}
+.history-loading {
+  font-size: 14px;
+  color: #888;
+  font-style: italic;
+}
+.history-error {
+  font-size: 13px;
+  color: #c00;
+  background: #fef2f2;
+  padding: 10px 12px;
+  border-radius: 6px;
+}
+
+/* ---- Triage tab ---- */
+.tickets {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.ticket {
+  background: white;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  padding: 16px 18px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ticket:hover {
+  border-color: #6366f1;
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.15);
+}
+.ticket:disabled { opacity: 0.6; cursor: wait; }
+.ticket-text { font-size: 14px; color: #111; margin-bottom: 4px; }
+.ticket-meta { font-size: 12px; color: #888; }
+
+.triage-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.triage-row {
+  background: white;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.triage-row .ticket-snippet { flex: 1; color: #555; margin-right: 12px; }
+.triage-category {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.cat-billing { background: #fef3c7; color: #92400e; }
+.cat-technical { background: #dbeafe; color: #1e40af; }
+.cat-fraud { background: #fee2e2; color: #991b1b; }
+.cat-account { background: #e0e7ff; color: #3730a3; }
+.cat-access { background: #dcfce7; color: #166534; }
+.cat-unknown { background: #f3f4f6; color: #555; }
+
+/* ---- Footer ---- */
+footer {
+  border-top: 1px solid #eaeaea;
+  padding: 20px 40px;
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+}
+footer a { color: #6366f1; text-decoration: none; }
+footer a:hover { text-decoration: underline; }

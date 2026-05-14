@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LumaBank — AgentLoop Demo</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">L</div>
+      <div>
+        <h1>LumaBank</h1>
+        <p class="subtitle">Live demo — agent powered by AgentLoop</p>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="chat">Customer Support</button>
+    <button class="tab" data-tab="triage">Ticket Triage</button>
+  </nav>
+
+  <!-- Tab 1: Chat -->
+  <section class="panel active" id="panel-chat">
+    <p class="hint">
+      Try the example questions below. The agent answers using OpenAI via a LangChain chain.
+      Any corrections you make in the AgentLoop dashboard are injected automatically on the next ask.
+    </p>
+
+    <div class="examples">
+      <button class="example" data-q="What is LumaBank's Pix nighttime limit?">
+        Pix nighttime limit
+      </button>
+      <button class="example" data-q="What is LumaBank's return policy on electronics?">
+        Return policy
+      </button>
+      <button class="example" data-q="What are LumaBank's customer support hours?">
+        Support hours
+      </button>
+    </div>
+
+    <div class="composer">
+      <input
+        id="chat-input"
+        type="text"
+        placeholder="Or type your own question..."
+        autocomplete="off"
+      />
+      <button id="chat-send">Ask</button>
+    </div>
+
+    <div id="chat-history" class="history"></div>
+  </section>
+
+  <!-- Tab 2: Triage -->
+  <section class="panel" id="panel-triage">
+    <p class="hint">
+      Click a ticket to classify it. Each classification call is logged as a turn in the
+      AgentLoop dashboard. Correct any misclassifications there to teach the agent.
+    </p>
+
+    <div class="tickets">
+      <button class="ticket" data-ticket="I can't access my account, says wrong password but I'm sure it's right">
+        <div class="ticket-text">"I can't access my account, says wrong password but I'm sure it's right"</div>
+        <div class="ticket-meta">Click to classify</div>
+      </button>
+      <button class="ticket" data-ticket="I was charged R$200 twice this morning for the same purchase">
+        <div class="ticket-text">"I was charged R$200 twice this morning for the same purchase"</div>
+        <div class="ticket-meta">Click to classify</div>
+      </button>
+      <button class="ticket" data-ticket="Someone took money from my account, I didn't make those transactions">
+        <div class="ticket-text">"Someone took money from my account, I didn't make those transactions"</div>
+        <div class="ticket-meta">Click to classify</div>
+      </button>
+      <button class="ticket" data-ticket="App keeps crashing when I try to send a Pix">
+        <div class="ticket-text">"App keeps crashing when I try to send a Pix"</div>
+        <div class="ticket-meta">Click to classify</div>
+      </button>
+    </div>
+
+    <div id="triage-results" class="triage-results"></div>
+  </section>
+
+  <footer>
+    <span>Powered by</span>
+    <a href="https://github.com/" target="_blank" rel="noopener">AgentLoop</a>
+    <span>·</span>
+    <span>Open the dashboard to see this turn:</span>
+    <a href="http://localhost:3000/review" target="_blank" rel="noopener">localhost:3000/review</a>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

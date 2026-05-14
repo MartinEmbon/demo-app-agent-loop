@@ -1,0 +1,24 @@
+[project]
+name = "agentloop-demo-app"
+version = "0.1.0"
+description = "Live-demo app for AgentLoop. Two tabs (LangChain chat + OpenAI triage) backed by the magic loop."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # Web layer
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-dotenv>=1.0.0",
+    # AgentLoop SDKs
+    "agentloop-py>=0.1.3",
+    "agentloop-py-openai>=0.2.1",
+    "agentloop-py-langchain>=0.1.0",
+    # LLM provider + LangChain core (transitive deps of the wrappers, but pinned for clarity)
+    "openai>=1.50.0",
+    "langchain>=0.3.0",
+    "langchain-openai>=0.2.0",
+]
+
+[tool.uv]
+# Resolve to latest compatible versions on each `uv lock`.
+package = false
