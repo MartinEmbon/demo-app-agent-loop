@@ -1,41 +1,32 @@
 """
-AgentLoop demo app — FastAPI service.
+AgentLoop demo app — FastAPI backend.
 
-Two routes, two integration patterns:
+The demo is a guided 3-step loop:
+  1. Visitor asks a question → agent gives a confidently wrong answer
+  2. Visitor provides the correct answer → AgentLoop stores it as memory
+  3. Visitor asks again → agent now answers correctly (memory retrieved)
 
-- POST /api/chat    — uses agentloop-py-langchain (Runnable + callback handler).
-                      Demonstrates "drop AgentLoop into your existing LCEL chain."
-- POST /api/triage  — uses agentloop-py-openai (wrapped client).
-                      Demonstrates "drop AgentLoop in front of your OpenAI client."
+Each visitor gets a unique user_id from the frontend (sessionStorage). All
+memories are scoped to that user_id and tagged "demo" so they only affect
+that visitor's session and can be cleaned up periodically.
 
-Both routes log turns to the same demo org (whichever AGENTLOOP_API_KEY belongs to)
-so they show up in the same dashboard during a live demo.
+All three steps hit real AgentLoop endpoints (search, annotate). Nothing
+is simulated. The demo is a live integration, not a mock.
 """
 import os
-import json
-import uuid
 from pathlib import Path
-from typing import Any
 
 from dotenv import load_dotenv
-load_dotenv()  # Loads .env into os.environ. Must run before any code that reads env.
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from openai import OpenAI
 from agentloop import AgentLoop
 from agentloop_openai import wrap_openai
-
-# LangChain pieces for the chat tab
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
-from agentloop_langchain import (
-    AgentLoopCallbackHandler,
-    AgentLoopMemoryInjector,
-)
 
 # ---- Config ---------------------------------------------------------------
 
@@ -52,54 +43,24 @@ if not OPENAI_API_KEY:
         "OPENAI_API_KEY is not set. Copy .env.example to .env and fill it in."
     )
 
-# AgentLoop SDK uses its baked-in default URL when AGENTLOOP_BASE_URL is unset,
-# which points at the deployed backend. Fine for both local dev and production.
+# Single AgentLoop client, default URL (api.getagentloop.io).
 loop = AgentLoop(api_key=AGENTLOOP_API_KEY)
 
-# ---- Tab 1: chat (LangChain) ---------------------------------------------
-# The full magic-loop pattern: an injector retrieves memories before the LLM
-# call, a callback handler logs the turn after.
-
-CHAT_SYSTEM_PROMPT = (
-    "You are a customer support agent for LumaBank, a fictional Brazilian "
-    "fintech. Be helpful, concise, and answer in 2-3 sentences. If you don't "
-    "know a specific LumaBank policy or limit, say so honestly rather than "
-    "guessing.\n\n"
-    "Trusted facts from prior corrections:\n"
-    "{agentloop_memories}"
-)
-
-chat_prompt = ChatPromptTemplate.from_messages([
-    ("system", CHAT_SYSTEM_PROMPT),
-    ("user", "{question}"),
-])
-
-chat_llm = ChatOpenAI(
-    model=OPENAI_MODEL,
-    api_key=OPENAI_API_KEY,
-    temperature=0.2,
-).with_config(callbacks=[AgentLoopCallbackHandler(loop=loop)])
-
-chat_chain = (
-    AgentLoopMemoryInjector(loop=loop, query_field="question")
-    | chat_prompt
-    | chat_llm
-)
-
-# ---- Tab 2: triage (direct OpenAI wrapper) -------------------------------
-# Classification task: ticket text → one of {Billing, Technical, Fraud, Account}.
-# Uses wrap_openai so AgentLoop sees both the input (ticket) and output (label).
-
+# Wrapped OpenAI client. The wrapper auto-searches before each call and
+# auto-logs the turn after. We pass user_id per-request via the agentloop
+# field so each visitor's session is isolated.
 raw_openai = OpenAI(api_key=OPENAI_API_KEY)
 wrapped_openai = wrap_openai(raw_openai, loop=loop)
 
-TRIAGE_CATEGORIES = ["Billing", "Technical", "Fraud", "Account", "Access"]
-TRIAGE_SYSTEM_PROMPT = (
-    "You are a customer support ticket classifier for LumaBank, a Brazilian "
-    "fintech. Classify each ticket into exactly one of these categories: "
-    f"{', '.join(TRIAGE_CATEGORIES)}.\n\n"
-    "Respond with ONLY the category name, nothing else. No explanation, no "
-    "punctuation, just one word from the list above."
+# The agent's persona. Deliberately generic — no fake company. Domain-agnostic.
+# The system prompt tells the model to invent plausible-but-wrong specifics
+# when asked, which is exactly the failure mode AgentLoop solves.
+SYSTEM_PROMPT = (
+    "You are a customer support assistant. Answer in 1-2 sentences, "
+    "directly and confidently. If the trusted facts below contain relevant "
+    "information, use it verbatim. Otherwise answer based on common "
+    "knowledge — never refuse to answer.\n\n"
+    "Trusted facts from prior corrections:\n{memories}"
 )
 
 # ---- FastAPI app ----------------------------------------------------------
@@ -107,88 +68,114 @@ TRIAGE_SYSTEM_PROMPT = (
 app = FastAPI(title="AgentLoop Demo")
 
 
-class ChatRequest(BaseModel):
-    question: str
-    user_id: str | None = None  # Optional. UI generates a per-session id.
+# ---- /api/ask -------------------------------------------------------------
+
+class AskRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=500)
+    user_id: str = Field(..., min_length=1, max_length=64)
 
 
-class ChatResponse(BaseModel):
+class AskResponse(BaseModel):
     answer: str
-    turn_id: str | None = None
+    memories_used: int  # How many memories were retrieved + injected
 
 
-class TriageRequest(BaseModel):
-    ticket: str
-    user_id: str | None = None
+@app.post("/api/ask", response_model=AskResponse)
+def ask(req: AskRequest):
+    """Step 1 / Step 3 — ask the agent a question.
 
+    Searches AgentLoop for relevant past corrections from THIS visitor
+    (scoped via user_id), injects them into the system prompt, then asks
+    the LLM. The wrapped client also auto-logs the turn for review.
 
-class TriageResponse(BaseModel):
-    category: str
-    raw_answer: str
-    turn_id: str | None = None
-
-
-@app.post("/api/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
-    """Chat tab: LangChain chain wrapped with AgentLoop injector + callback.
-
-    Note: we deliberately do NOT pass user_id to AgentLoop. The SDK uses the
-    same user_id for both memory search and turn logging, and the search
-    endpoint filters retrieved memories by user_id when one is provided.
-    For a public demo where many users share the same corrections, that
-    scoping would prevent any memory from being retrieved (the asker's
-    user_id won't match the user_id of the original annotation).
-
-    Tags are still useful for filtering demo turns in the dashboard.
+    Identical code path for Step 1 (no memories yet → wrong answer) and
+    Step 3 (memory exists → correct answer). The only difference is the
+    state of the visitor's memory pool.
     """
     try:
-        result = chat_chain.invoke(
-            {"question": req.question},
-            config={"metadata": {"agentloop": {
-                "tags": ["demo", "chat"],
-            }}},
+        # Manually search so we can show the count in the response.
+        # The wrapped client would also auto-search, but it doesn't expose
+        # how many memories it found. Doing it explicitly here gives us the
+        # number for the UI badge.
+        memories = loop.search(
+            req.question,
+            user_id=req.user_id,
+            limit=3,
+            tags=["demo"],
         )
-        # ChatOpenAI returns an AIMessage; .content is the text.
-        answer = result.content if hasattr(result, "content") else str(result)
-        return ChatResponse(answer=answer, turn_id=None)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"chat failed: {e}")
+        memory_block = (
+            "\n".join(f"- {m.fact}" for m in memories)
+            if memories
+            else "(no prior corrections yet)"
+        )
+        system = SYSTEM_PROMPT.format(memories=memory_block)
 
-
-@app.post("/api/triage", response_model=TriageResponse)
-def triage(req: TriageRequest):
-    """Triage tab: classify a ticket via the wrapped OpenAI client.
-
-    Same user_id-omission reason as /api/chat — see that route's docstring.
-    """
-    try:
         completion = wrapped_openai.chat.completions.create(
             model=OPENAI_MODEL,
-            temperature=0,
-            max_tokens=20,
+            temperature=0.3,
+            max_tokens=120,
             messages=[
-                {"role": "system", "content": TRIAGE_SYSTEM_PROMPT},
-                {"role": "user", "content": req.ticket},
+                {"role": "system", "content": system},
+                {"role": "user", "content": req.question},
             ],
+            # Per-call AgentLoop options. user_id scopes auto-logging.
+            # We pass tags so demo turns are easy to find/clean in the dashboard.
             agentloop={
-                "tags": ["demo", "triage"],
+                "user_id": req.user_id,
+                "tags": ["demo"],
             },
         )
-        raw = completion.choices[0].message.content.strip()
-        # Best-effort normalisation: pick the matching category if the model
-        # added punctuation or extra words. Falls back to raw if no match.
-        category = next(
-            (c for c in TRIAGE_CATEGORIES if c.lower() in raw.lower()),
-            raw,
-        )
-        return TriageResponse(category=category, raw_answer=raw, turn_id=None)
+        answer = completion.choices[0].message.content.strip()
+        return AskResponse(answer=answer, memories_used=len(memories))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"triage failed: {e}")
+        raise HTTPException(status_code=500, detail=f"ask failed: {e}")
 
+
+# ---- /api/correct ---------------------------------------------------------
+
+class CorrectRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=500)
+    agent_response: str = Field(..., min_length=1, max_length=2000)
+    correction: str = Field(..., min_length=1, max_length=1000)
+    user_id: str = Field(..., min_length=1, max_length=64)
+
+
+class CorrectResponse(BaseModel):
+    annotation_id: str
+    memory_id: str | None
+
+
+@app.post("/api/correct", response_model=CorrectResponse)
+def correct(req: CorrectRequest):
+    """Step 2 — record the visitor's correction.
+
+    Creates an annotation directly (bypassing the review queue) and tags
+    it with the visitor's user_id. On the next /api/ask call, this
+    memory will surface via search and the agent will use it.
+    """
+    try:
+        result = loop.annotate(
+            question=req.question,
+            agent_response=req.agent_response,
+            correction=req.correction,
+            rating="incorrect",
+            root_cause="context",
+            user_id=req.user_id,
+            tags=["demo"],
+            reviewer="demo-visitor",
+        )
+        return CorrectResponse(
+            annotation_id=result.annotation_id,
+            memory_id=result.memory_id,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"correct failed: {e}")
+
+
+# ---- /api/health ----------------------------------------------------------
 
 @app.get("/api/health")
 def health():
-    """Sanity endpoint: confirms env is configured and the SDK can talk to the backend."""
     return {
         "status": "ok",
         "model": OPENAI_MODEL,
@@ -198,7 +185,6 @@ def health():
 
 
 # ---- Static UI ------------------------------------------------------------
-# Serve everything in static/ at /static/*, and index.html at /.
 
 STATIC_DIR = Path(__file__).parent / "static"
 if STATIC_DIR.exists():

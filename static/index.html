@@ -1,96 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LumaBank — AgentLoop Demo</title>
-  <link rel="stylesheet" href="/static/style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentLoop — live demo</title>
+<meta name="description" content="Watch an AI agent learn from a correction in 90 seconds. Live demo of AgentLoop's runtime learning loop.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E↻%3C/text%3E%3C/svg%3E">
+
+<link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <div class="logo">L</div>
-      <div>
-        <h1>LumaBank</h1>
-        <p class="subtitle">Live demo — agent powered by AgentLoop</p>
-      </div>
+
+<header class="wrap">
+  <nav>
+    <a class="logo" href="https://getagentloop.io" target="_blank" rel="noopener noreferrer">
+      <span class="logo-mark">↻</span>
+      AgentLoop
+      <span class="logo-tag">demo</span>
+    </a>
+    <div class="nav-links">
+      <a href="https://getagentloop.io" target="_blank" rel="noopener noreferrer">About</a>
+      <a href="https://app.getagentloop.io/docs" target="_blank" rel="noopener noreferrer">Docs</a>
+      <a href="https://app.getagentloop.io" class="nav-cta" target="_blank" rel="noopener noreferrer">Start free</a>
     </div>
-  </header>
-
-  <nav class="tabs">
-    <button class="tab active" data-tab="chat">Customer Support</button>
-    <button class="tab" data-tab="triage">Ticket Triage</button>
   </nav>
+</header>
 
-  <!-- Tab 1: Chat -->
-  <section class="panel active" id="panel-chat">
-    <p class="hint">
-      Try the example questions below. The agent answers using OpenAI via a LangChain chain.
-      Any corrections you make in the AgentLoop dashboard are injected automatically on the next ask.
+<main class="wrap">
+
+  <section class="intro">
+    <div class="eyebrow">90 seconds · live</div>
+    <h1>Watch an agent <em>learn from a correction.</em></h1>
+    <p class="lede">
+      Three steps. First, the agent answers wrong. You correct it.
+      Then you ask again — and this time the agent remembers. No fine-tuning,
+      no retraining. Just memory, retrieved in real time.
+    </p>
+
+    <div class="session-meta">
+      <span class="meta-label">Your session:</span>
+      <code id="session-id">—</code>
+      <button id="reset-btn" class="reset-btn" type="button" title="Start fresh">
+        Reset demo
+      </button>
+    </div>
+  </section>
+
+  <!-- ─── Step 1 ─── -->
+  <section class="step" id="step-1" data-step="1">
+    <div class="step-head">
+      <div class="step-num">01</div>
+      <h2>Ask the agent something</h2>
+    </div>
+    <p class="step-lede">
+      Try one of the examples or write your own question. The agent will answer
+      using its training data — confidently, even when it's wrong.
     </p>
 
     <div class="examples">
-      <button class="example" data-q="What is LumaBank's Pix nighttime limit?">
-        Pix nighttime limit
+      <button class="example" data-q="What's the maximum daily transfer limit for verified accounts?">
+        Daily transfer limit
       </button>
-      <button class="example" data-q="What is LumaBank's return policy on electronics?">
+      <button class="example" data-q="How long does a wire transfer take to clear internationally?">
+        Wire transfer timing
+      </button>
+      <button class="example" data-q="What's your return policy for opened electronics?">
         Return policy
-      </button>
-      <button class="example" data-q="What are LumaBank's customer support hours?">
-        Support hours
       </button>
     </div>
 
     <div class="composer">
       <input
-        id="chat-input"
+        id="step1-input"
         type="text"
-        placeholder="Or type your own question..."
+        placeholder="Or type your own question…"
         autocomplete="off"
+        maxlength="500"
       />
-      <button id="chat-send">Ask</button>
+      <button id="step1-send" class="btn-primary" type="button">
+        Ask <span class="arrow">→</span>
+      </button>
     </div>
 
-    <div id="chat-history" class="history"></div>
+    <div id="step1-output" class="step-output" hidden>
+      <div class="qa-block">
+        <div class="qa-label">You asked</div>
+        <div class="qa-text" id="step1-question"></div>
+      </div>
+      <div class="qa-block agent">
+        <div class="qa-label">
+          Agent answered
+          <span class="badge memory-badge" id="step1-badge">0 memories used</span>
+        </div>
+        <div class="qa-text" id="step1-answer"></div>
+      </div>
+      <div class="step-arrow">↓</div>
+    </div>
   </section>
 
-  <!-- Tab 2: Triage -->
-  <section class="panel" id="panel-triage">
-    <p class="hint">
-      Click a ticket to classify it. Each classification call is logged as a turn in the
-      AgentLoop dashboard. Correct any misclassifications there to teach the agent.
+  <!-- ─── Step 2 ─── -->
+  <section class="step locked" id="step-2" data-step="2">
+    <div class="step-head">
+      <div class="step-num">02</div>
+      <h2>Tell the agent what's right</h2>
+    </div>
+    <p class="step-lede">
+      Type the correct answer. AgentLoop will save it as a memory tied to your
+      session, so the agent can find it next time.
     </p>
 
-    <div class="tickets">
-      <button class="ticket" data-ticket="I can't access my account, says wrong password but I'm sure it's right">
-        <div class="ticket-text">"I can't access my account, says wrong password but I'm sure it's right"</div>
-        <div class="ticket-meta">Click to classify</div>
-      </button>
-      <button class="ticket" data-ticket="I was charged R$200 twice this morning for the same purchase">
-        <div class="ticket-text">"I was charged R$200 twice this morning for the same purchase"</div>
-        <div class="ticket-meta">Click to classify</div>
-      </button>
-      <button class="ticket" data-ticket="Someone took money from my account, I didn't make those transactions">
-        <div class="ticket-text">"Someone took money from my account, I didn't make those transactions"</div>
-        <div class="ticket-meta">Click to classify</div>
-      </button>
-      <button class="ticket" data-ticket="App keeps crashing when I try to send a Pix">
-        <div class="ticket-text">"App keeps crashing when I try to send a Pix"</div>
-        <div class="ticket-meta">Click to classify</div>
+    <div class="composer composer-vertical">
+      <textarea
+        id="step2-input"
+        rows="3"
+        placeholder="The correct answer is…"
+        maxlength="1000"
+      ></textarea>
+      <button id="step2-send" class="btn-primary" type="button" disabled>
+        Save correction <span class="arrow">→</span>
       </button>
     </div>
 
-    <div id="triage-results" class="triage-results"></div>
+    <div id="step2-output" class="step-output" hidden>
+      <div class="confirmation">
+        <span class="check">✓</span>
+        <span class="confirmation-text">Saved to AgentLoop memory.</span>
+      </div>
+      <div class="qa-block correction">
+        <div class="qa-label">Your correction</div>
+        <div class="qa-text" id="step2-correction-text"></div>
+      </div>
+      <div class="step-arrow">↓</div>
+    </div>
   </section>
 
-  <footer>
-    <span>Powered by</span>
-    <a href="https://github.com/" target="_blank" rel="noopener">AgentLoop</a>
-    <span>·</span>
-    <span>Open the dashboard to see this turn:</span>
-    <a href="http://localhost:3000/review" target="_blank" rel="noopener">localhost:3000/review</a>
-  </footer>
+  <!-- ─── Step 3 ─── -->
+  <section class="step locked" id="step-3" data-step="3">
+    <div class="step-head">
+      <div class="step-num">03</div>
+      <h2>Ask again</h2>
+    </div>
+    <p class="step-lede">
+      Same question. This time AgentLoop retrieves your correction and injects
+      it into the system prompt. Watch what happens.
+    </p>
 
-  <script src="/static/app.js"></script>
+    <div class="composer">
+      <input
+        id="step3-input"
+        type="text"
+        readonly
+        autocomplete="off"
+      />
+      <button id="step3-send" class="btn-primary" type="button" disabled>
+        Ask again <span class="arrow">→</span>
+      </button>
+    </div>
+
+    <div id="step3-output" class="step-output" hidden>
+      <div class="qa-block">
+        <div class="qa-label">You asked (again)</div>
+        <div class="qa-text" id="step3-question"></div>
+      </div>
+      <div class="qa-block agent fixed">
+        <div class="qa-label">
+          Agent answered
+          <span class="badge memory-badge highlight" id="step3-badge">1 memory used</span>
+        </div>
+        <div class="qa-text" id="step3-answer"></div>
+      </div>
+      <div class="celebration" id="celebration" hidden>
+        <div class="celebration-icon">↻</div>
+        <div class="celebration-text">
+          <strong>This is the loop.</strong> One correction → permanent memory →
+          retrieved automatically on every future related query.
+          Across all your agents, in production, without retraining anything.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── How it actually works ─── -->
+  <section class="step explainer">
+    <div class="step-head">
+      <div class="step-num">04</div>
+      <h2>How it works in code</h2>
+    </div>
+    <p class="step-lede">
+      The whole loop above runs on real AgentLoop endpoints. Here's the
+      Python that powered each step.
+    </p>
+
+    <details class="code-block" open>
+      <summary>Step 1 &amp; 3 — Ask the agent</summary>
+      <pre><span class="cmt"># Search relevant past corrections (scoped to this visitor)</span>
+memories = loop.<span class="fn">search</span>(question, user_id=session_id, tags=[<span class="str">"demo"</span>])
+
+<span class="cmt"># Inject them into the system prompt</span>
+system = base_prompt + <span class="str">"\nTrusted facts:\n"</span> + memory_text(memories)
+
+<span class="cmt"># Ask the LLM. wrapped_openai auto-logs the turn for review.</span>
+response = wrapped_openai.chat.completions.<span class="fn">create</span>(
+    model=<span class="str">"gpt-4o-mini"</span>,
+    messages=[
+        {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: system},
+        {<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: question},
+    ],
+    agentloop={<span class="str">"user_id"</span>: session_id, <span class="str">"tags"</span>: [<span class="str">"demo"</span>]},
+)</pre>
+    </details>
+
+    <details class="code-block">
+      <summary>Step 2 — Record the correction</summary>
+      <pre>loop.<span class="fn">annotate</span>(
+    question=question,
+    agent_response=wrong_answer,
+    correction=user_supplied_correct_answer,
+    rating=<span class="str">"incorrect"</span>,
+    root_cause=<span class="str">"context"</span>,
+    user_id=session_id,
+    tags=[<span class="str">"demo"</span>],
+)
+<span class="cmt"># Returns immediately. The annotation is embedded, deduplicated,</span>
+<span class="cmt"># and available to search() within seconds.</span></pre>
+    </details>
+
+    <div class="cta-row">
+      <a href="https://app.getagentloop.io" class="btn-primary" target="_blank" rel="noopener noreferrer">
+        Try it in your own agent <span class="arrow">→</span>
+      </a>
+      <a href="https://app.getagentloop.io/docs" class="btn-ghost" target="_blank" rel="noopener noreferrer">
+        Read the docs
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="footer-row">
+    <a class="logo" href="https://getagentloop.io" target="_blank" rel="noopener noreferrer">
+      <span class="logo-mark">↻</span>
+      AgentLoop
+    </a>
+    <div class="footer-links">
+      <a href="https://getagentloop.io" target="_blank" rel="noopener noreferrer">getagentloop.io</a>
+      <a href="https://app.getagentloop.io" target="_blank" rel="noopener noreferrer">Dashboard</a>
+      <a href="mailto:martin@agentloop.dev">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/static/app.js"></script>
 </body>
 </html>
