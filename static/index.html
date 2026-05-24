@@ -8,9 +8,9 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
 
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E↻%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="/static/logo.png">
 
 <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -19,8 +19,8 @@
 <header class="wrap">
   <nav>
     <a class="logo" href="https://getagentloop.io" target="_blank" rel="noopener noreferrer">
-      <span class="logo-mark">↻</span>
-      AgentLoop
+      <img class="logo-mark" src="/static/logo.png" alt="AgentLoop logo">
+      AgentLoop<sup class="tm">™</sup>
       <span class="logo-tag">demo</span>
     </a>
     <div class="nav-links">
@@ -245,15 +245,16 @@ response = wrapped_openai.chat.completions.<span class="fn">create</span>(
 <footer class="wrap">
   <div class="footer-row">
     <a class="logo" href="https://getagentloop.io" target="_blank" rel="noopener noreferrer">
-      <span class="logo-mark">↻</span>
+      <img class="logo-mark" src="/static/logo.png" alt="AgentLoop logo">
       AgentLoop
     </a>
     <div class="footer-links">
       <a href="https://getagentloop.io" target="_blank" rel="noopener noreferrer">getagentloop.io</a>
       <a href="https://app.getagentloop.io" target="_blank" rel="noopener noreferrer">Dashboard</a>
-      <a href="mailto:martin@agentloop.dev">Contact</a>
+      <a href="mailto:hello@getagentloop.io">Contact</a>
     </div>
   </div>
+  <div class="footer-copy">© 2026 AgentLoop. All rights reserved.</div>
 </footer>
 
 <script src="/static/app.js"></script>
