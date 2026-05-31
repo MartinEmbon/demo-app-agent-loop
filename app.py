@@ -119,10 +119,19 @@ def ask(req: AskRequest):
                 {"role": "system", "content": system},
                 {"role": "user", "content": req.question},
             ],
-            # Per-call AgentLoop options. user_id scopes auto-logging.
-            # We pass tags so demo turns are easy to find/clean in the dashboard.
+            # Per-call AgentLoop options.
+            #
+            # IMPORTANT: as of agentloop_openai v0.2.2, `user_id` only
+            # TAGS the logged turn; it does NOT scope memory retrieval.
+            # Without `search_user_id`, the wrapper's auto-search runs
+            # against the full org-wide "demo"-tagged corpus — every
+            # past demo visitor's correction would be retrievable here.
+            # We set both to the same value so this visitor only ever
+            # sees their own most recent correction (combined with the
+            # user_id rotation in /correct).
             agentloop={
                 "user_id": req.user_id,
+                "search_user_id": req.user_id,
                 "tags": ["demo"],
             },
         )
