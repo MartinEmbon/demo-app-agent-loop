@@ -193,6 +193,13 @@ async function submitCorrection() {
     step2CorrectionText.textContent = correction;
     step2Output.hidden = false;
 
+    // Restore the step 2 controls so they're ready for a future cycle
+    // (e.g. after the visitor hits Reset). The button stays visually fine
+    // because the output block now covers it, but the underlying state
+    // needs to be clean for the next run.
+    step2Send.innerHTML = 'Save correction <span class="arrow">→</span>';
+    step2Input.disabled = false;
+
     // Enable the "Ask again" button in step 3
     document.getElementById("step3-send").disabled = false;
     unlockStep(3);
@@ -294,7 +301,9 @@ document.getElementById("reset-btn").addEventListener("click", () => {
   step1Input.value = "";
   step1Output.hidden = true;
   step2Input.value = "";
+  step2Input.disabled = false;
   step2Send.disabled = true;
+  step2Send.innerHTML = 'Save correction <span class="arrow">→</span>';
   step2Output.hidden = true;
   document.getElementById("step3-input").value = "";
   step3Send.disabled = true;
