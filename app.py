@@ -14,6 +14,7 @@ All three steps hit real AgentLoop endpoints (search, annotate). Nothing
 is simulated. The demo is a live integration, not a mock.
 """
 import os
+import secrets
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -143,6 +144,16 @@ class CorrectRequest(BaseModel):
 class CorrectResponse(BaseModel):
     annotation_id: str
     memory_id: str | None
+    # When a visitor saves a new correction, we mint a fresh user_id and
+    # save the annotation under it. The frontend then swaps to this new
+    # ID for subsequent /ask calls. Net effect: only the LATEST correction
+    # is reachable from this browser tab — older corrections (e.g. from
+    # someone correcting twice and changing their mind) still exist in the
+    # backend but are scoped to old user_ids this tab no longer uses, so
+    # the demo always reflects the user's most recent correction. This
+    # sidesteps "which conflicting memory wins?", which is a real product
+    # question still being decided — see HANDOVER_5 §"product gaps".
+    new_user_id: str
 
 
 @app.post("/api/correct", response_model=CorrectResponse)
@@ -150,23 +161,29 @@ def correct(req: CorrectRequest):
     """Step 2 — record the visitor's correction.
 
     Creates an annotation directly (bypassing the review queue) and tags
-    it with the visitor's user_id. On the next /api/ask call, this
-    memory will surface via search and the agent will use it.
+    it with a FRESH user_id (returned to the frontend, which swaps to it).
+    Annotations from earlier corrections in the same browser session stay
+    in the backend but are scoped to user_ids the tab no longer uses, so
+    only the latest correction is reachable on the next /api/ask call.
     """
     try:
+        # Mint the fresh user_id BEFORE saving so the annotation goes
+        # directly into the new scope. No need to ever delete the old one.
+        new_user_id = "demo_" + secrets.token_urlsafe(6)
         result = loop.annotate(
             question=req.question,
             agent_response=req.agent_response,
             correction=req.correction,
             rating="incorrect",
             root_cause="context",
-            user_id=req.user_id,
+            user_id=new_user_id,
             tags=["demo"],
             reviewer="demo-visitor",
         )
         return CorrectResponse(
             annotation_id=result.annotation_id,
             memory_id=result.memory_id,
+            new_user_id=new_user_id,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"correct failed: {e}")

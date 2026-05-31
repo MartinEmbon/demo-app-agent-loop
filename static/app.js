@@ -188,6 +188,22 @@ async function submitCorrection() {
       return;
     }
 
+    // Read the response so we can swap to the fresh user_id the backend
+    // minted. From here on, /ask calls go against the new scope — only
+    // this latest correction is reachable. If we corrected the same
+    // question previously in this tab, that older memory is now orphaned
+    // (still in the backend, just unreachable from here).
+    try {
+      const body = await res.json();
+      if (body && body.new_user_id) {
+        sessionId = body.new_user_id;
+        sessionStorage.setItem(SESSION_KEY, sessionId);
+        document.getElementById("session-id").textContent = sessionId;
+      }
+    } catch (_) {
+      // Older backend without new_user_id — proceed with the same id.
+    }
+
     // Success — render the confirmation and unlock step 3
     state.correction = correction;
     step2CorrectionText.textContent = correction;
